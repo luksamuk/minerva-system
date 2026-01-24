@@ -42,6 +42,43 @@ If you wish to read the online documentation, please refer to
 the [Minerva System documentation](https://luksamuk.github.io/minerva-system),
 which is currently written in Brazillian Portuguese.
 
+## Running Locally
+
+To run the Minerva System locally, you need to start the required services and then the microservices.
+
+### Prerequisites
+- Docker installed
+- Docker Compose installed
+
+### Step-by-step Instructions
+
+1. **Start the infrastructure services**:
+   ```bash
+   cd deploy/compose/services
+   docker-compose up -d
+   ```
+   This will start:
+   - PostgreSQL 15 database (port 5432)
+   - MongoDB 4 database (port 27017)
+   - Redis 7 cache (port 6379)
+   - RabbitMQ with management UI (ports 5672, 15672)
+
+2. **Start the microservices**:
+   ```bash
+   cd deploy/compose
+   docker-compose up -d
+   ```
+
+3. **Access the system**:
+   - REST API: http://localhost:9000/api
+   - RabbitMQ Management UI: http://localhost:15672 (username: rabbitmq, password: minerva)
+
+### Service Credentials
+- PostgreSQL: user=postgres, password=postgres
+- MongoDB: user=root, password=mongo
+- Redis: no password
+- RabbitMQ: user=rabbitmq, password=minerva
+
 ## Licensing
 
 This project is licensed under the GPLv3 license. For more information, see
