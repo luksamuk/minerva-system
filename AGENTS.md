@@ -86,3 +86,11 @@ Each service has its own logging configuration file located in deploy/logconfig 
 
 ### Frontend
 - Flutter framework for mobile/desktop interface
+
+## Update Protocol
+
+When changes are made to any build, deployment, or development methods:
+1. Always update the README.md file with the new procedures
+2. Ensure all deployment instructions are accurate and working
+3. Test the documented procedures before committing changes
+4. Document any new prerequisites or requirements for building and deployment

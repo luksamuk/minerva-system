@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servers-configmap
+  namespace: minerva
+data:
+  USER_SERVICE_SERVER: user-svc
+  SESSION_SERVICE_SERVER: session-svc
+  DATABASE_SERVICE_SERVER: postgresql-svc
+  MONGO_SERVICE_SERVER: mongodb-svc
+  REST_SERVICE_SERVER: rest-svc
+  REDIS_SERVICE_SERVER: redis-svc
+  RABBITMQ_SERVICE_SERVER: rabbitmq

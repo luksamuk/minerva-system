@@ -1,0 +1,61 @@
+---
+# Minerva System -- DISPATCH: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: dispatch
+      labels:
+        app: dispatch
+    spec:
+      containers:
+        - name: dispatch-container
+          image: luksamuk/minerva_dispatch:0.1.1
+          imagePullPolicy: Always
+          env:
+            - name: LOG_CONFIG_FILE
+              value: "/cfg/logging.yml"
+          envFrom:
+            - configMapRef:
+                name: ports-configmap
+            - configMapRef:
+                name: servers-configmap
+          volumeMounts:
+            - name: log-config
+              mountPath: /cfg/
+          resources:
+            requests:
+              cpu: 50m
+      volumes:
+        - name: log-config
+          configMap:
+            name: log-configmap
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dispatch
+---
+# Minerva System -- DISPATCH: Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dispatch-hpa
+  namespace: minerva
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dispatch-deployment
+  minReplicas: 3
+  maxReplicas: 9
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65

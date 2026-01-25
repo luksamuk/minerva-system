@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ports-configmap
+  namespace: minerva
+data:
+  ROCKET_PORT: "9000"
+  USER_SERVICE_PORT: "9010"
+  SESSION_SERVICE_PORT: "9011"
+  PRODUCT_SERVICE_PORT: "9012"
+  STOCK_SERVICE_PORT: "9013"
+  REPORT_SERVICE_PORT: "9014"
+  DATABASE_PORT: "5432"
+  MONGO_PORT: "27017"

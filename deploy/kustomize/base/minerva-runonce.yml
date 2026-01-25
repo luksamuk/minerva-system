@@ -1,0 +1,50 @@
+---
+# Minerva System -- RUNONCE: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runonce-configmap
+  namespace: minerva
+data:
+  DATABASE_SERVICE_SERVER: postgresql-svc
+  MONGO_SERVICE_SERVER: mongodb-svc
+  DATABASE_PORT: "5432"
+  MONGO_PORT: "27017"
+  RABBITMQ_SERVICE_SERVER: rabbitmq
+---
+# Minerva System -- RUNONCE: Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: runonce-secret
+  namespace: minerva
+type: Opaque
+data:
+  ADMIN_PASSWORD: YWRtaW4=
+---
+# Minerva System -- RUNONCE: Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: runonce-job
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: runonce
+      labels:
+        app: runonce
+    spec:
+      containers:
+        - name: runonce
+          image: luksamuk/minerva_runonce:0.3.0
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: runonce-configmap
+            - secretRef:
+                name: runonce-secret
+      restartPolicy: OnFailure
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 3000
+

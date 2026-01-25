@@ -49,6 +49,7 @@ To run the Minerva System locally, you need to start the required services and t
 ### Prerequisites
 - Docker installed
 - Docker Compose installed
+- Optional: kubectl installed for Kustomize deployment
 
 ### Step-by-step Instructions
 
@@ -72,6 +73,25 @@ To run the Minerva System locally, you need to start the required services and t
 3. **Access the system**:
    - REST API: http://localhost:9000/api
    - RabbitMQ Management UI: http://localhost:15672 (username: rabbitmq, password: minerva)
+
+## Running on Minikube
+
+For local Kubernetes development using Minikube:
+
+1. **Start Minikube**:
+   ```bash
+   minikube start
+   ```
+
+2. **Deploy using Kustomize**:
+   ```bash
+   cd deploy/kustomize/base
+   kubectl apply -k .
+   ```
+
+3. **Access the system**:
+   - REST API: `minikube service rest-svc --url`
+   - RabbitMQ Management UI: `minikube service rabbitmq --url`
 
 ### Service Credentials
 - PostgreSQL: user=postgres, password=postgres

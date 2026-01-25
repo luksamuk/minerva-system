@@ -1,0 +1,76 @@
+---
+# Minerva System -- USER: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: user
+      labels:
+        app: user
+    spec:
+      containers:
+        - name: user-container
+          image: luksamuk/minerva_user:0.3.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9010
+          env:
+            - name: LOG_CONFIG_FILE
+              value: "/cfg/logging.yml"
+          envFrom:
+            - configMapRef:
+                name: ports-configmap
+            - configMapRef:
+                name: servers-configmap
+          volumeMounts:
+            - name: log-config
+              mountPath: /cfg/
+          resources:
+            requests:
+              cpu: 150m
+      volumes:
+        - name: log-config
+          configMap:
+            name: log-configmap
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user
+---
+# Minerva System -- USER: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-svc
+  namespace: minerva
+spec:
+  type: ClusterIP
+  selector:
+    app: user
+  ports:
+    - port: 9010
+---
+# Minerva System -- USER: Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: user-hpa
+  namespace: minerva
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: user-deployment
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65

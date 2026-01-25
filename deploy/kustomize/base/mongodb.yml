@@ -1,0 +1,71 @@
+---
+# MongoDB: Secret
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: mongodb-secret
+  namespace: minerva
+data:
+  MONGO_INITDB_ROOT_USERNAME: cm9vdA==
+  MONGO_INITDB_ROOT_PASSWORD: bW9uZ28=
+---
+# MongoDB: Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  namespace: minerva
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# MongoDB: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: mongodb
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb-container
+          image: mongo:4
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /data/db
+              name: mongodb-pv
+          ports:
+            - containerPort: 27017
+          envFrom:
+            - secretRef:
+                name: mongodb-secret
+      volumes:
+        - name: mongodb-pv
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+---
+# MongoDB: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-svc
+  namespace: minerva
+spec:
+  type: ClusterIP
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017

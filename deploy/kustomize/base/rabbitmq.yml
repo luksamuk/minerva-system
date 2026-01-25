@@ -1,0 +1,98 @@
+---
+# ConfigMap for plugins, located at /etc/rabbitmq/enabled_plugins
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-plugin-configmap
+  namespace: minerva
+data:
+  enabled_plugins: |
+    [rabbitmq_management, rabbitmq_prometheus].
+---
+# ConfigMap for configuration in /etc/rabbitmq/conf.d/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-configmap
+  namespace: minerva
+data:
+  10-defaults.conf: |
+    log.console.level = info
+    channel_max = 1700
+    default_user = rabbitmq
+    default_pass = minerva
+    default_user_tags.administrator = true
+---
+# PersistentVolumeClaim for /var/lib/rabbitmq
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pvc
+  namespace: minerva
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+# Deployment (cpu 500m, memory 1Gi, max cpu 1, max memory 2Gi)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: rabbitmq
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq-container
+          image: rabbitmq:3.11-management-alpine
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /var/lib/rabbitmq
+              name: rabbitmq-pv
+            - mountPath: /etc/rabbitmq/
+              name: rabbitmq-plugin-config
+            - mountPath: /etc/rabbitmq/conf.d
+              name: rabbitmq-config
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+            - containerPort: 15692
+      volumes:
+        - name: rabbitmq-pv
+          persistentVolumeClaim:
+            claimName: rabbitmq-pvc
+        - name: rabbitmq-plugin-config
+          configMap:
+            name: rabbitmq-plugin-configmap
+        - name: rabbitmq-config
+          configMap:
+            name: rabbitmq-configmap
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+---
+# Service (ClusterIP, named rabbitmq)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: minerva
+spec:
+  type: ClusterIP
+  selector:
+    app: rabbitmq
+  ports:
+    - name: "amqp"
+      port: 5672
+    - name: "management"
+      port: 15672
+    - name: "vhost"
+      port: 15692

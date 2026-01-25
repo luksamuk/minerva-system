@@ -1,0 +1,54 @@
+---
+# Redis Commander: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rediscommander-configmap
+  namespace: minerva
+data:
+  REDIS_HOST: redis-svc
+  REDIS_PORT: "6379"
+---
+# Redis Commander: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rediscommander-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: rediscommander
+      labels:
+        app: rediscommander
+    spec:
+      containers:
+        - name: rediscommander-container
+          image: rediscommander/redis-commander:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: rediscommander-configmap
+      nodeSelector:
+        kubernetes.io/arch: "amd64"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rediscommander
+---
+# Redis Commander: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rediscommander-svc
+  namespace: minerva
+spec:
+  type: NodePort
+  selector:
+    app: rediscommander
+  ports:
+    - port: 8081
+      nodePort: 31086
+

@@ -1,0 +1,51 @@
+---
+# Minerva System -- Front-End: Configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-configmap
+  namespace: minerva
+data:
+  ROCKET_PORT: "9000"
+  REST_SERVICE_SERVER: rest-svc
+---
+# Minerva System -- Front-End: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: frontend
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend-container
+          image: luksamuk/minerva_frontend:0.1.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: frontend-configmap
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+---
+# Minerva System -- Front-End: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  namespace: minerva
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      nodePort: 30001

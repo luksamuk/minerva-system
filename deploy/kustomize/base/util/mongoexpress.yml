@@ -1,0 +1,66 @@
+---
+# MongoExpress: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongoexpress-configmap
+  namespace: minerva
+data:
+  ME_CONFIG_MONGODB_SERVER: mongodb-svc
+  ME_CONFIG_SITE_BASEURL: /mongoexpress/
+---
+# MongoExpress: Secret
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: mongoexpress-secret
+  namespace: minerva
+data:
+  ME_CONFIG_MONGODB_AUTH_USERNAME: cm9vdA==
+  ME_CONFIG_MONGODB_AUTH_PASSWORD: bW9uZ28=
+  ME_CONFIG_BASICAUTH_USERNAME: bW9uZ28=
+  ME_CONFIG_BASICAUTH_PASSWORD: bW9uZ28=
+---
+# MongoExpress: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongoexpress-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: mongoexpress
+      labels:
+        app: mongoexpress
+    spec:
+      containers:
+        - name: mongoexpress-container
+          image: mongo-express:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: mongoexpress-configmap
+            - secretRef:
+                name: mongoexpress-secret
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongoexpress
+---
+# MongoExpress: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongoexpress-svc
+  namespace: minerva
+spec:
+  type: NodePort
+  selector:
+    app: mongoexpress
+  ports:
+    - port: 8081
+      nodePort: 31085

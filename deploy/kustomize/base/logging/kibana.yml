@@ -1,0 +1,66 @@
+---
+# Kibana: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-configmap
+  namespace: minerva
+data:
+  SERVER_BASEPATH: /kibana
+  SERVER_REWRITEBASEPATH: "true"
+  ELASTICSEARCH_HOSTS: '["http://elasticsearch-svc:9200"]'
+  XPACK_SECURITY_ENABLED: "false"
+---
+# Kibana: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: kibana
+  name: kibana-deployment
+  namespace: minerva
+spec:
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana-container
+          image: kibana:8.5.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5601
+              name: http-kibana
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: kibana-configmap
+            - secretRef:
+                name: kibana-secret
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+---
+# Kibana: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-svc
+  namespace: minerva
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5601
+      protocol: TCP
+      targetPort: http-kibana
+      nodePort: 31090
+  selector:
+    app: kibana
+  sessionAffinity: None
+

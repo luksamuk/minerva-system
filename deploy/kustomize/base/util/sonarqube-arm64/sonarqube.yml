@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarqube-data-pvc
+  namespace: devtools
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube-deployment
+  namespace: devtools
+spec:
+  template:
+    metadata:
+      name: sonarqube
+      labels:
+        app: sonarqube
+    spec:
+      containers:
+        - name: sonarqube-container
+          image: luksamuk/sonarqube-arm64:9-community
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
+              name: sonarqube
+          volumeMounts:
+            - name: sonarqube-data
+              mountPath: /opt/sonarqube/data
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            periodSeconds: 30
+            failureThreshold: 10
+            initialDelaySeconds: 300
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            periodSeconds: 30
+            failureThreshold: 10
+            initialDelaySeconds: 600
+      volumes:
+        - name: sonarqube-data
+          persistentVolumeClaim:
+            claimName: sonarqube-data-pvc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube-svc
+  namespace: devtools
+spec:
+  type: LoadBalancer
+  selector:
+    app: sonarqube
+  ports:
+    - port: 10000
+      targetPort: 9000
+      nodePort: 30100

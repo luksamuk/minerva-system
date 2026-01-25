@@ -1,0 +1,98 @@
+---
+# Fluentd: Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd-serviceaccount
+  namespace: minerva
+---
+# Fluentd: Cluster Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd-clusterrole
+  namespace: minerva
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - namespaces
+    verbs: ["get", "list", "watch"]
+---
+# Fluentd: Cluster Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd-clusterrolebinding
+  namespace: minerva
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluentd-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: fluentd-serviceaccount
+    namespace: minerva
+---
+# Fluentd: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-configmap
+  namespace: minerva
+data:
+  FLUENT_ELASTICSEARCH_HOST: "elasticsearch-svc"
+  FLUENT_ELASTICSEARCH_PORT: "9200"
+  FLUENT_ELASTICSEARCH_SCHEME: "http"
+  FLUENT_UID: "0"
+---
+# Fluentd: DaemonSet (for Arm64)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-daemonset
+  namespace: minerva
+  labels:
+    app: fluentd
+spec:
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      serviceAccountName: fluentd-serviceaccount
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: noderole.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: fluentd
+          # NOTE: THIS IMAGE WORKS ONLY WITH ARM64!
+          image: fluent/fluentd-kubernetes-daemonset:v1-debian-elasticsearch-arm64
+          env:
+            - name: FLUENT_CONTAINER_TAIL_PARSER_TYPE
+              value: "/^(?<time>.+?) (?<stream>stdout|stderr) (?<logtag>[FP]) (?<log>.*)$/"
+            - name: FLUENT_CONTAINER_TAIL_PARSER_TIME_FORMAT
+              value: "%Y-%m-%dT%H:%M:%S.%N%:z"
+          envFrom:
+            - configMapRef:
+                name: fluentd-configmap
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          volumeMounts:
+            - name: default-log
+              mountPath: /var/log
+      volumes:
+        - name: default-log
+          hostPath:
+            path: /var/log
+  selector:
+    matchLabels:
+      app: fluentd

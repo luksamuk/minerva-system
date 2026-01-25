@@ -1,0 +1,71 @@
+---
+# PostgreSQL: Secret
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: postgresql-secret
+  namespace: minerva
+data:
+  POSTGRES_USER: cG9zdGdyZXM=
+  POSTGRES_PASSWORD: cG9zdGdyZXM=
+---
+# PostgreSQL: Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-pvc
+  namespace: minerva
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# PostgreSQL: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: postgresql
+      labels:
+        app: postgresql
+    spec:
+      containers:
+        - name: postgresql-container
+          image: postgres:15-alpine
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgresql-pv
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgresql-secret
+      volumes:
+        - name: postgresql-pv
+          persistentVolumeClaim:
+            claimName: postgresql-pvc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+---
+# PostgreSQL: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-svc
+  namespace: minerva
+spec:
+  type: ClusterIP
+  selector:
+    app: postgresql
+  ports:
+    - port: 5432

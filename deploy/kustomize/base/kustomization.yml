@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - minerva-rest.yml
+  - minerva-user.yml
+  - minerva-dispatch.yml
+  - minerva-runonce.yml
+  - ports-configmap.yml
+  - servers-configmap.yml
+  - log-configmap.yml
+  - minerva-namespace.yml
+  - postgresql.yml
+  - mongodb.yml
+  - redis.yml
+  - rabbitmq.yml
+  - minerva-ingress.yml

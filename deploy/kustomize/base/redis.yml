@@ -1,0 +1,200 @@
+---
+# Redis: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-configmap
+  namespace: minerva
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    daemonize no
+    supervised no
+    pidfile "/var/run/redis_6379.pid"
+    loglevel notice
+    logfile ""
+    databases 16
+    always-show-logo yes
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename "dump.rdb"
+    rdb-del-sync-files no
+    dir "/data"
+    replica-serve-stale-data yes
+    replica-read-only no
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+    repl-diskless-load disabled
+    repl-disable-tcp-nodelay no
+    replica-priority 100
+    acllog-max-len 128
+    lazyfree-lazy-eviction no
+    lazyfree-lazy-expire no
+    lazyfree-lazy-server-del no
+    replica-lazy-flush no
+    lazyfree-lazy-user-del no
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    lua-time-limit 5000
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    latency-monitor-threshold 0
+    notify-keyspace-events ""
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    hll-sparse-max-bytes 3000
+    stream-node-max-bytes 4kb
+    stream-node-max-entries 100
+    activerehashing yes
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    hz 10
+    dynamic-hz yes
+    aof-rewrite-incremental-fsync yes
+    rdb-save-incremental-fsync yes
+    jemalloc-bg-thread yes
+---
+# Redis: Stateful Set
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: minerva
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis-svc
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      initContainers:
+        - name: redis-cluster-config
+          image: redis:7-alpine
+          command: ["sh", "-c"]
+          args:
+            - |
+              cp /tmp/redis/redis.conf /etc/redis/redis.conf
+              
+              echo "Tentando acessar Redis Sentinel..."
+              MASTER_FDQN=`hostname  -f | sed -e 's/redis-[0-9]\./redis-0./'`
+              if [ "$(redis-cli -h sentinel -p 5000 ping)" != "PONG" ]; then
+                  echo "Servidor Redis master não encontrado via Sentinel, usando redis-0 por padrão"
+
+                  if [ "$(hostname)" == "redis-0" ]; then
+                      echo "Esta é a réplica redis-0, a configuração não será atualizada."
+                  else
+                      echo "Atualizando arquivo redis.conf..."
+                      echo "slaveof $MASTER_FDQN 6379" >> /etc/redis/redis.conf
+                  fi
+              else
+                  echo "Redis Sentinel encontrado. Procurando master..."
+                  MASTER="$(redis-cli -h sentinel -p 5000 sentinel get-master-addr-by-name mymaster | grep -E '(^redis-\d{1,})|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})')"
+                  echo "Master encontrado: $MASTER, atualizando arquivo redis.conf..."
+                  echo "slaveof $MASTER 6379" >> /etc/redis/redis.conf
+              fi
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis/
+            - name: redis-initial-config
+              mountPath: /tmp/redis/
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["redis-server"]
+          args: ["/etc/redis/redis.conf"]
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            # - name: redis-data
+            #   mountPath: /data
+            - name: redis-config
+              mountPath: /etc/redis/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 15m
+            limits:
+              memory: 100Mi
+              cpu: 20m
+      volumes:
+        - name: redis-config
+          emptyDir: {}
+        - name: redis-initial-config
+          configMap:
+            name: redis-configmap
+  # volumeClaimTemplates:
+  #   - metadata:
+  #       name: redis-data
+  #     spec:
+  #       accessModes:
+  #         - ReadWriteOnce
+  #       resources:
+  #         requests:
+  #           storage: 500Mi
+---
+# Redis: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+  namespace: minerva
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      name: redis
+---
+# Redis: Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: redis-hpa
+  namespace: minerva
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: redis
+  minReplicas: 3
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 60

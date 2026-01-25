@@ -1,0 +1,92 @@
+---
+# Minerva System -- REST: Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rest-configmap
+  namespace: minerva
+data:
+  ROCKET_KEEP_ALIVE: "0"
+  ROCKET_PROFILE: release
+  ROCKET_LOG_LEVEL: "normal"
+  ROCKET_CLI_COLORS: "false"
+  API_ROOT: "/api"
+---
+# Minerva System -- REST: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-deployment
+  namespace: minerva
+spec:
+  template:
+    metadata:
+      name: rest
+      labels:
+        app: rest
+    spec:
+      containers:
+        - name: rest-container
+          image: luksamuk/minerva_rest:0.3.2
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+          env:
+            - name: LOG_CONFIG_FILE
+              value: "/cfg/logging.yml"
+          envFrom:
+            - configMapRef:
+                name: servers-configmap
+            - configMapRef:
+                name: ports-configmap
+            - configMapRef:
+                name: rest-configmap
+          volumeMounts:
+            - name: log-config
+              mountPath: /cfg/
+          resources:
+            requests:
+              cpu: 50m
+      volumes:
+        - name: log-config
+          configMap:
+            name: log-configmap
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rest
+---
+# Minerva System -- REST: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest-svc
+  namespace: minerva
+spec:
+  type: LoadBalancer
+  selector:
+    app: rest
+  ports:
+    - port: 9000
+      nodePort: 30000
+---
+# Minerva System -- REST: Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rest-hpa
+  namespace: minerva
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rest-deployment
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50

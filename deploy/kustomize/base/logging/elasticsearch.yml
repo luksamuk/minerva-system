@@ -1,0 +1,102 @@
+---
+# Elasticsearch: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-svc
+  namespace: minerva
+spec:
+  type: ClusterIP
+  selector:
+    app: elasticsearch
+  ports:
+    - port: 9200
+      name: http
+    - port: 9300
+      name: transport
+---
+# Elasticsearch: StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch-statefulset
+  namespace: minerva
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  revisionHistoryLimit: 10
+  template:
+    metadata:
+      name: elasticsearch
+      labels:
+        app: elasticsearch
+    spec:
+      dnsPolicy: ClusterFirst
+      initContainers:
+        - command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /usr/share/elasticsearch/data
+            - sysctl -w vm.max_map_count=262144
+            - chmod 777 /usr/share/elasticsearch/data
+            - chmod 777 /usr/share/elasticsearch/data/node
+            - chmod g+rwx /usr/share/elasticsearch/data
+            - chgrp 1000 /usr/share/elasticsearch/data
+          image: busybox:1.35.0-musl
+          imagePullPolicy: IfNotPresent
+          name: set-dir-owner
+          resources: {}
+          securityContext:
+            privileged: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+      containers:
+        - name: elasticsearch-container
+          image: elasticsearch:8.5.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9200
+              name: http
+            - containerPort: 9300
+              name: transport
+          resources:
+            requests:
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          securityContext:
+            privileged: true
+            runAsUser: 1000
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          env:
+            - name: cluster.name
+              value: elasticsearch-cluster
+            - name: discovery.type
+              value: single-node
+            - name: ES_JAVA_OPTS
+              value: -Xms512m -Xmx1g
+            - name: bootstrap.memory_lock
+              value: "false"
+            - name: xpack.security.enabled
+              value: "false"
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+  serviceName: elasticsearch-svc
+  selector:
+    matchLabels:
+      app: elasticsearch
+  volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
+
