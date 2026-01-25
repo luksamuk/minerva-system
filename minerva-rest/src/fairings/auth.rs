@@ -102,12 +102,12 @@ impl<'r> FromRequest<'r> for SessionInfo {
         // Get tenant from first segment of uri, e.g. /<tenant>/...
         let tenant = match uri.path().segments().get(0) {
             Some(tenant) => tenant.to_owned(),
-            None => return Outcome::Failure((Status::Unauthorized, SessionError::MissingTenant)),
+            None => return Outcome::Error((Status::Unauthorized, SessionError::MissingTenant)),
         };
 
         // Get auth token from request header
         match req.headers().get_one("Authorization") {
-            None => Outcome::Failure((Status::Unauthorized, SessionError::MissingAuth)),
+            None => Outcome::Error((Status::Unauthorized, SessionError::MissingAuth)),
             Some(header) => match get_bearer_token(header) {
                 Some(token) => {
                     // Request a connection to SESSION service
@@ -119,7 +119,7 @@ impl<'r> FromRequest<'r> for SessionInfo {
 
                     match rpc::session::make_client(endpoint, tenant, requestor).await {
                         Err(_) => {
-                            return Outcome::Failure((
+                            return Outcome::Error((
                                 Status::ServiceUnavailable,
                                 SessionError::ServiceUnreachable,
                             ))
@@ -130,12 +130,12 @@ impl<'r> FromRequest<'r> for SessionInfo {
                                 Outcome::Success(SessionInfo::from(response.into_inner(), token))
                             }
                             Err(_) => {
-                                Outcome::Failure((Status::Unauthorized, SessionError::ExpiredAuth))
+                                Outcome::Error((Status::Unauthorized, SessionError::ExpiredAuth))
                             }
                         },
                     }
                 }
-                None => Outcome::Failure((Status::Unauthorized, SessionError::MissingAuth)),
+                None => Outcome::Error((Status::Unauthorized, SessionError::MissingAuth)),
             },
         }
     }

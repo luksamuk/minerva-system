@@ -1,11 +1,12 @@
 ## Compilation and preparation
 
 # Base container for compilation
-FROM rust:1.65.0-alpine3.16 AS rust_base
+FROM rust:1.93.0-alpine3.23 AS rust_base
 WORKDIR /
 RUN apk add --no-cache cmake make musl-dev file build-base libpq libpq-dev openssl-dev postgresql-dev git
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
-RUN cargo install cargo-chef
+RUN cargo install cargo-binstall
+RUN cargo binstall cargo-chef
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 
 # Cargo Chef recipe generation
@@ -47,7 +48,7 @@ RUN apk add --no-cache protobuf protobuf-dev
 RUN cargo build --release
 
 # Base container for deploying services
-FROM alpine:3.16 AS deploy
+FROM alpine:3.23 AS deploy
 ARG APP=/usr/src/app
 RUN apk add --no-cache ca-certificates tzdata libpq
 COPY --from=builder /usr/lib/libgcc_s.so.1 /usr/lib/
