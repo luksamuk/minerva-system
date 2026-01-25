@@ -104,3 +104,16 @@ For local Kubernetes development using Minikube:
 This project is licensed under the GPLv3 license. For more information, see
 the LICENSE file, or refer to [Choose a License.com](https:///choosealicense.com).
 
+## Contribution Policy
+
+This is an experimental project, not a playground for random contributors looking to
+get popular by submitting lots of PRs. If you are here to submit code, please
+ensure it is of high quality, well-thought-out, and genuinely beneficial to the
+project. We will not accept low-effort, "vibe-coded" contributions that are just
+there to increase PR count, even if they appear impressive on the surface.
+
+We're looking for meaningful contributions that follow the project's architecture
+and design principles, not flashy but superficial changes. If your PRs are more
+about showing off your productivity than actually improving the system,
+you'll find yourself on the unwanted list, not the contributor list.
+
