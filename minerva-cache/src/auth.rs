@@ -33,7 +33,7 @@ pub async fn get_session(client: &Client, tenant: &str, token: &str) -> RedisRes
 pub fn save_session(client: &Client, tenant: &str, token: &str, json: &str) -> RedisResult<()> {
     let key = gen_session_key(tenant, token);
     let mut conn = client.get_connection()?;
-    redis::transaction(&mut conn, &[key.clone()], |conn, pipe| {
+    redis::transaction(&mut conn, &[std::slice::from_ref(&key)], |conn, pipe| {
         pipe.set(key.clone(), json)
             .expire(key.clone(), EXPIRATION)
             .query(conn)
@@ -72,13 +72,13 @@ mod tests {
         assert!(get_session(&client, tenant, token).await.is_err());
 
         // Save session, expect non-failure result
-        let _ = save_session(&client, tenant, token, json).unwrap();
+        save_session(&client, tenant, token, json).unwrap();
 
         // Fetch saved JSON and expect it to be equals to what we sent
         let json_return = get_session(&client, tenant, token).await.unwrap();
         assert_eq!(json, json_return);
 
         // Remove session expecting success
-        let _ = remove_session(&client, tenant, token).await.unwrap();
+        remove_session(&client, tenant, token).await.unwrap();
     }
 }
