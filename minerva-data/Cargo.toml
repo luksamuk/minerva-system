@@ -10,21 +10,20 @@ path = "src/lib.rs"
 
 [dependencies]
 minerva-rpc = {path = "../minerva-rpc"}
-diesel = {version = "1.4.8", features = ["postgres", "extras", "numeric", "chrono"]}
-diesel-derive-enum = {version = "1.1.2", features = ["postgres"]}
+diesel = {version = "2.3.6", features = ["postgres", "extras", "chrono"]}
+diesel-derive-enum = {version = "1.1.2", default-features = false}
+bb8 = {version = "0.8", default-features = false}
 dotenv = "0.15.0"
-bigdecimal = {version = "0.1.2", features = ["serde"]}
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-serde_repr = "0.1"
-toml = "0.5"
+serde = {version = "1.0.228", features = ["derive"]}
+serde_derive = "1.0.228"
+num-derive = "0.4"
 num-traits = "0.2"
-num-derive = "0.3"
-bb8 = "0.7.1"
-bb8-diesel = "0.2.1"
-chrono = {version = "0.4", features = ["serde"]}
-mongodb = "2.2.1"
-argon2 = "0.4"
-rand_core = {version = "0.6", features = ["std"]}
-rocket_okapi = "0.8.0-rc.2"
+bigdecimal = "0.4"
+serde_json = {version = "1.0", default-features = false, features = ["std"]}
+toml = "0.5"
+num-bigint = "0.4"
+chrono = {version = "0.4", features = ["serde", "clock"]}
+mongodb = {version = "2.2.1", default-features = false}
+argon2 = {version = "0.4", default-features = false}
+rand_core = {version = "0.6", features = ["std"], default-features = false}
+tokio = {version = "1.0", features = ["time", "net"]}
