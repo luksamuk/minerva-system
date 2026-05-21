@@ -2,17 +2,21 @@
 //! PostgreSQL database, specially regarding connections and database creation.
 
 use bb8::Pool;
-use bb8_diesel::DieselConnection;
-use bb8_diesel::DieselConnectionManager;
-use diesel::{Connection, PgConnection};
+use bb8::RunError;
+use diesel::connection::SimpleConnection;
+use diesel::pg::PgConnection;
+use diesel::result::ConnectionError;
+use diesel_async::pooled_connection::PgPoolConnection;
 
 mod create;
 
 /// Type representing a Diesel connection to a database.
-pub type DBConnection = DieselConnection<PgConnection>;
+#[cfg(feature = "diesel_async")]
+pub type DBConnection = bb8::PooledConnection<bb8::ManageConnection<PgPoolConnection>>;
 
-/// Type representing a Diesel connection pool to a database.
-pub type DBPool = Pool<DieselConnectionManager<PgConnection>>;
+/// Type representing a Diesel connection pool to a database using bb8.
+#[cfg(feature = "diesel_async")]
+pub type DBPool = bb8::Pool<bb8::ManageConnection<PgPoolConnection>>;
 
 pub use create::create_database;
 
@@ -61,11 +65,14 @@ pub fn make_single_connection(tenant: &str, server: &str) -> PgConnection {
 pub async fn make_connection_pool(tenant: &str, server: &str, max_connections: u32) -> DBPool {
     let url = build_database_string(tenant, server);
 
-    let manager = DieselConnectionManager::<PgConnection>::new(&url);
-
-    Pool::builder()
+    let manager = bb8::Pool::builder()
         .max_size(max_connections)
-        .build(manager)
+        .build(bb8::PostgresConnectionManager::new(
+            diesel_async::pg::PgPoolOptions::new().max_connections(max_connections),
+            url.parse()
+                .map_err(|e| panic!("Error parsing database URL: {}", e))
+                .unwrap()
+        ))
         .await
         .map_err(|e| panic!("Error creating database connection pool: {}", e))
         .unwrap()

@@ -1,6 +1,6 @@
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     address (id) {
         id -> Int4,
@@ -19,7 +19,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     client (id) {
         id -> Int4,
@@ -33,7 +33,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     product (id) {
         id -> Int4,
@@ -45,7 +45,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     stock (product_id) {
         product_id -> Int4,
@@ -56,7 +56,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     stock_mov (id) {
         id -> Int4,
@@ -71,14 +71,14 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     syslog (id) {
         id -> Int4,
         service -> Varchar,
         requestor -> Varchar,
         entity -> Varchar,
-        operation -> Op_type,
+        operation -> OpType,
         datetime -> Timestamptz,
         description -> Nullable<Varchar>,
     }
@@ -86,7 +86,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::syslog::Op_type;
+    use crate::syslog::OpType;
 
     user (id) {
         id -> Int4,
@@ -99,12 +99,4 @@ table! {
 
 joinable!(address -> client (client_id));
 
-allow_tables_to_appear_in_same_query!(
-    address,
-    client,
-    product,
-    stock,
-    stock_mov,
-    syslog,
-    user,
-);
+allow_tables_to_appear_in_same_query!(address, client, product, stock, stock_mov, syslog, user,);

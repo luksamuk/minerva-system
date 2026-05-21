@@ -12,10 +12,8 @@
 #[macro_use]
 extern crate diesel;
 #[macro_use]
-extern crate diesel_derive_enum;
-extern crate num_derive;
-#[macro_use]
 extern crate serde_derive;
+extern crate num_derive;
 
 #[allow(missing_docs)]
 #[allow(unused_imports)]

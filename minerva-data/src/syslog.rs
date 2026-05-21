@@ -9,20 +9,23 @@
 use crate::schema::syslog;
 use chrono::{DateTime, Utc};
 
-/// Enumeration for the type of operation registered on `syslog`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, Serialize)]
-#[DieselType = "Op_type"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[repr(u16)]
 pub enum OpType {
     /// Operation for inserting new entities.
-    Insert,
+    Insert = 1,
     /// Operation for updating entities.
-    Update,
+    Update = 2,
     /// Operation for removing entities.
-    Delete,
+    Delete = 3,
 }
 
+/// Table name for diesel queries
+#[table_name = "syslog"]
+pub struct Syslog {}
+
 /// DTO representing a single entry on the `syslog` table.
-#[derive(Queryable, Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(diesel-derive-enum::sql_enum, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Syslog {
     /// ID of the entry on the table.
     pub id: i32,
@@ -41,7 +44,7 @@ pub struct Syslog {
 }
 
 /// DTO for adding a new entry on the `syslog` table.
-#[derive(Insertable, Clone, Debug, PartialEq, Eq)]
+#[derive(Insertable, Clone, Debug, PartialEq, Eq, AsChangeset)]
 #[table_name = "syslog"]
 pub struct NewLog {
     /// Name of the service performing the operation.
